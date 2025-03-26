@@ -13,6 +13,6 @@ class Employees extends Model
 
     public function tasks()
     {
-        return $this->hasMany(Tasks::class);
+        return $this->hasMany(Tasks::class, 'employee_id');
     }
 }

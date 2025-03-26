@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Tasks;
 use Illuminate\Console\View\Components\Task;
 use Illuminate\Http\Request;
+use function Symfony\Component\Clock\now;
 
 class TasksController extends Controller
 {
@@ -13,14 +14,13 @@ class TasksController extends Controller
      */
     public function index()
     {
-        $tasks = Tasks::join('employees', 'tasks.employee_id', '=', 'employees.id')
-            ->select('tasks.*', 'employees.name')
-            ->get();
+        $tasks = Tasks::with('employee')->get();
 
         return response()->json([
-            'status' => 'success',
-            'data' => $tasks
-        ]);
+            'status'  => 'success',
+            'message' => 'Tasks retrieved successfully',
+            'data'    => $tasks,
+        ], 200);
     }
 
     /**
@@ -42,9 +42,20 @@ class TasksController extends Controller
             'due_date' => 'required',
         ]);
 
-        $tasks = Tasks::create($request->all());
-
-        return response()->json($tasks, 201);
+        try {
+            $task = Tasks::create($request->all());
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Task created successfully',
+                'data'    => $task,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to create task',
+                // 'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -68,21 +79,27 @@ class TasksController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $taskID = Tasks::findOrFail($id);
-
-        if (!$taskID) {
-            return response()->json(['error' => 'Task not found'], 404);
-        }
-
         $request->validate([
             'employee_id' => 'required',
             'task_name' => 'required',
             'due_date' => 'required',
         ]);
 
-        $taskID->update($request->all());
+        try {
+            $task = Tasks::findOrFail($id);
+            $task->update($request->all());
 
-        return response()->json($taskID);
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Task updated successfully',
+                'data'    => $task,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Task not found',
+            ], 404);
+        }
     }
 
     /**
@@ -90,14 +107,18 @@ class TasksController extends Controller
      */
     public function destroy($id)
     {
-        $taskID = Tasks::findOrFail($id);
-
-        if (!$taskID) {
-            return response()->json(['error' => 'Task not found'], 404);
+        try {
+            $task = Tasks::findOrFail($id);
+            $task->delete();
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Task deleted successfully',
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Task not found',
+            ], 404);
         }
-
-        $taskID->delete();
-
-        return response()->json(200);
     }
 }

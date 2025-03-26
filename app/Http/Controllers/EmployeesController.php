@@ -13,11 +13,13 @@ class EmployeesController extends Controller
     public function index()
     {
         $employees = Employees::all();
+        // $employeesCount = $employees->count();
 
         return response()->json([
-            'status' => 'success',
-            'data' => $employees
-        ]);
+            'status'  => 'success',
+            'message' => 'Employees retrieved successfully',
+            'data'    => $employees,
+        ], 200);
     }
 
     /**
@@ -38,9 +40,20 @@ class EmployeesController extends Controller
             'position' => 'required',
         ]);
 
-        $employees = Employees::create($request->all());
-
-        return response()->json($employees, 201);
+        try {
+            $employee = Employees::create($request->all());
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Employee created successfully',
+                'data'    => $employee,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to create employee',
+                // 'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -64,20 +77,26 @@ class EmployeesController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $employeesID = Employees::findOrFail($id);
-
-        if (!$employeesID) {
-            return response()->json(['error' => 'Employees not found'], 404);
-        }
-
         $request->validate([
             'name' => 'required',
             'position' => 'required',
         ]);
 
-        $employeesID->update($request->all());
+        try {
+            $employee = Employees::findOrFail($id);
+            $employee->update($request->all());
 
-        return response()->json($employeesID);
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Employee updated successfully',
+                'data'    => $employee,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Employee not found',
+            ], 404);
+        }
     }
 
     /**
@@ -85,14 +104,19 @@ class EmployeesController extends Controller
      */
     public function destroy($id)
     {
-        $employeesID = Employees::findOrFail($id);
+        try {
+            $employee = Employees::findOrFail($id);
+            $employee->delete();
 
-        if (!$employeesID) {
-            return response()->json(['error' => 'Employees not found'], 404);
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Employee deleted successfully',
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Employee not found',
+            ], 404);
         }
-
-        $employeesID->delete();
-
-        return response()->json(['message' => 'Employee deleted successfully']);
     }
 }
